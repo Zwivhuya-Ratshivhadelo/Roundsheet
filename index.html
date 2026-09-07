@@ -514,7 +514,17 @@ async function fetchConfig(){ // app calls OUT to the read flow; caches for offl
     const res=await fetch(CONFIG_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:"{}"});
     if(!res.ok){ toast("Lists: flow returned HTTP "+res.status); return false; }
     const d=await res.json();
-    lists={ hdpeGrades:d.hdpeGrades||[], ppGrades:d.ppGrades||[], hdpeTechnicians:d.hdpeTechnicians||[], ppTechnicians:d.ppTechnicians||[] };
+    // flow returns raw rows: { grades:[{Grades,Plant},...], technicians:[{TechnicianName,Plant},...] }
+    const plantOf=r=>{const p=r&&r.Plant; return (p&&typeof p==="object")?(p.Value||p.value||""):(p||"");};
+    const grades=Array.isArray(d.grades)?d.grades:[];
+    const techs=Array.isArray(d.technicians)?d.technicians:[];
+    const nameOf=r=>{const t=r&&r.TechnicianName; if(!t)return ""; if(typeof t==="string")return t; return t.DisplayName||t.displayName||t.Title||t.Email||"";};
+    lists={
+      hdpeGrades: grades.filter(r=>plantOf(r)==="HDPE").map(r=>r.Grades).filter(Boolean),
+      ppGrades:   grades.filter(r=>plantOf(r)==="PP").map(r=>r.Grades).filter(Boolean),
+      hdpeTechnicians: techs.filter(r=>plantOf(r)==="HDPE").map(nameOf).filter(Boolean),
+      ppTechnicians:   techs.filter(r=>plantOf(r)==="PP").map(nameOf).filter(Boolean)
+    };
     listsSyncedAt=new Date().toISOString();
     await dbPut("settings",{k:"lists",v:lists,at:listsSyncedAt});
     return true;
@@ -533,7 +543,7 @@ document.getElementById("scrim").onclick=closeMenu;
   await prune(); await buildSidebar(); updateOnline(); render();
   if("serviceWorker" in navigator){try{await navigator.serviceWorker.register("sw.js");}catch(_){}}
   if(navigator.onLine){ syncAll(true); fetchConfig().then(ok=>{ if(ok) render(); }); }
-  setInterval(()=>{ if(navigator.onLine){ syncAll(true); fetchConfig(); } }, 60000); // opportunistic, only when online
+  // no timers: uploads happen on save, on reconnect (online event) and via manual Sync; lists refresh on open + Refresh
 })();
 </script>
 </body>
