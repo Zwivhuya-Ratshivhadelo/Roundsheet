@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#171a21">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Safripol Roundsheets</title>
+<style>
+  :root{
+    --ink:#15171c; --sub:#6b7280; --faint:#9aa1ac; --bg:#f4f6f8; --card:#fff; --border:#e6e8ec;
+    --side:#171a21; --side-text:#e8eaee; --side-sub:#7f8794; --side-hover:rgba(255,255,255,.07);
+    --line:#12b3a6;
+    --shadow:0 1px 2px rgba(16,20,28,.05),0 8px 24px rgba(16,20,28,.06);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;color:var(--ink);background:var(--bg);letter-spacing:-.01em}
+  button{font-family:inherit;cursor:pointer}
+  .mono{font-variant-numeric:tabular-nums}
+
+  .app{display:flex;min-height:100vh}
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{width:256px;flex:0 0 256px;background:var(--side);color:var(--side-text);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .brand{padding:22px 20px 16px}
+  .brand .logo{font-size:19px;font-weight:800;letter-spacing:-.02em}
+  .brand .tag{font-size:11px;color:var(--side-sub);letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
+  .navsec{padding:8px 12px}
+  .navsec .h{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--side-sub);padding:12px 10px 6px}
+  .navitem{display:flex;align-items:center;gap:12px;width:100%;background:transparent;border:0;color:var(--side-text);
+    text-align:left;padding:11px 12px;border-radius:11px;font-size:14.5px;font-weight:600;position:relative}
+  .navitem:hover{background:var(--side-hover)}
+  .navitem.active{background:var(--side-hover)}
+  .navitem.active::before{content:"";position:absolute;left:-12px;top:9px;bottom:9px;width:4px;border-radius:0 4px 4px 0;background:var(--dot,#fff)}
+  .navitem .dot{width:11px;height:11px;border-radius:3px;flex:0 0 auto}
+  .navitem .cnt{margin-left:auto;font-size:11px;font-weight:800;background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:2px 8px}
+  .navitem svg{width:18px;height:18px;opacity:.85}
+  .sidefoot{margin-top:auto;padding:14px 20px}
+  .status{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--side-sub)}
+  .status .s{width:8px;height:8px;border-radius:50%;background:#37d399}
+  body.offline .status .s{background:#f5b23b}
+  body.offline .status .t::after{content:"Offline"} body:not(.offline) .status .t::after{content:"Online"}
+
+  /* ---------- MAIN ---------- */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .mtop{display:none;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
+  .burger{width:40px;height:40px;border-radius:10px;border:1px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center}
+  .content{padding:26px 30px;max-width:1200px;width:100%;margin:0 auto;flex:1}
+  @media(max-width:1100px){.content{padding:22px}}
+
+  .phead{display:flex;align-items:flex-end;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+  .phead .ttl{font-size:26px;font-weight:800;letter-spacing:-.03em;display:flex;align-items:center;gap:12px}
+  .phead .ttl .chip{width:14px;height:14px;border-radius:5px}
+  .phead .sub{color:var(--sub);font-size:14px;margin-top:4px}
+  .grow{flex:1}
+  .btn{border:0;border-radius:12px;font-weight:700;font-size:14.5px;padding:0 18px;height:46px;display:inline-flex;align-items:center;gap:9px}
+  .btn.primary{background:var(--line);color:#fff;box-shadow:0 6px 16px color-mix(in srgb,var(--line) 35%,transparent)}
+  .btn.primary:active{transform:translateY(1px)}
+  .btn.ghost{background:#fff;border:1px solid var(--border);color:var(--ink)}
+  .btn svg{width:18px;height:18px}
+  .pill2{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;border-radius:999px;padding:9px 14px;margin-right:2px}
+  .pill2 .d{width:8px;height:8px;border-radius:50%}
+  .pill2.on{background:#e6f7ef;color:#0f8f5f}.pill2.on .d{background:#37b981}
+  .pill2.off{background:#fdecec;color:#c0392b}.pill2.off .d{background:#ef5350}
+  .rowsync{border:1.5px solid var(--line);color:var(--line);background:#fff;border-radius:9px;font-weight:700;font-size:13px;padding:7px 15px}
+  .rowsync:active{transform:translateY(1px)}
+  .rowsync.done{border-color:var(--border);color:var(--faint);background:#fafbfc}
+
+  /* table */
+  .tablecard{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  table{width:100%;border-collapse:collapse}
+  thead th{text-align:left;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);
+    padding:14px 18px;border-bottom:1px solid var(--border);background:#fbfcfd}
+  tbody td{padding:15px 18px;border-bottom:1px solid var(--border);font-size:14.5px;color:var(--ink)}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:#fafbfc}
+  td .sdot{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--sub);font-weight:600}
+  td .sdot i{width:8px;height:8px;border-radius:50%;font-style:normal}
+  .sy i{background:#37b981}.sp i{background:#f5b23b}.se i{background:#ef5350}
+  .sy{color:#0f8f5f}.sp{color:#b47a00}
+  .empty{padding:70px 20px;text-align:center;color:var(--faint)}
+  .empty svg{width:40px;height:40px;opacity:.5;margin-bottom:12px}
+  .empty .b{font-weight:700;color:var(--sub);font-size:15px}
+
+  /* ---------- RECORD ---------- */
+  .rtop{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+  .recordbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:26px 0 0;padding:0}
+  .recordbar .btn.ghost{flex:0 0 auto;justify-content:center}
+  .recordbar .save{flex:1;min-width:170px;min-height:48px;border:0;border-radius:13px;background:var(--line);color:#fff;font-size:16px;font-weight:800}
+  .recordbar .save:active{transform:translateY(1px)}
+  .f.miss > label{color:#e5484d}
+  .f.miss input,.f.miss select,.f.miss textarea{border-color:#e5484d;background:#fff}
+  .f.miss .seg{outline:2px solid #e5484d;outline-offset:2px}
+  .iconbtn{width:44px;height:44px;border-radius:12px;border:1px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center}
+  .iconbtn svg{width:20px;height:20px}
+  .rtop .ttl{font-size:22px;font-weight:800;letter-spacing:-.02em}
+
+  .section{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px;margin-bottom:16px}
+  .section > h3{margin:0 0 16px;font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--line);
+    display:flex;align-items:center;gap:10px}
+  .section > h3::before{content:"";width:10px;height:18px;border-radius:4px;background:var(--line)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px 18px}
+  .f label{display:block;font-size:13px;font-weight:600;margin-bottom:7px}
+  .f .note{font-size:11.5px;color:var(--faint);margin-top:6px;line-height:1.4}
+  .f.full{grid-column:1/-1}
+  input,select,textarea{width:100%;font:inherit;font-size:15px;color:var(--ink);background:#f6f7f9;border:1.5px solid transparent;border-radius:11px;padding:12px 13px}
+  select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:38px}
+  textarea{min-height:100px;resize:vertical;line-height:1.45}
+  input:focus,select:focus,textarea:focus{outline:none;background:#fff;border-color:var(--line)}
+
+  .seg{display:inline-flex;background:#eceef1;border-radius:11px;padding:3px;gap:3px;width:100%}
+  .seg button{flex:1;border:0;background:transparent;color:#4b5563;font-weight:700;font-size:14px;height:38px;border-radius:9px}
+  .seg button[aria-pressed="true"]{background:var(--line);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+  .photos{display:flex;flex-wrap:wrap;gap:12px}
+  .addph{width:88px;height:88px;border-radius:13px;border:2px dashed #cfd4da;background:#f7f8fa;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:4px;color:var(--sub);font-size:11px;font-weight:700}
+  .addph svg{width:22px;height:22px}
+  .thumb{width:88px;height:88px;border-radius:13px;overflow:hidden;position:relative;background:#000;box-shadow:var(--shadow)}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .x{position:absolute;top:5px;right:5px;width:22px;height:22px;border:0;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center}
+
+  /* settings lists */
+  .settcols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.settcols{grid-template-columns:1fr}}
+  .addrow{display:flex;gap:10px;margin-bottom:12px}
+  .addrow input{flex:1}
+  .addrow button{flex:0 0 auto;background:var(--ink);color:#fff;border:0;border-radius:11px;padding:0 16px;font-weight:700}
+  .chiplist{display:flex;flex-wrap:wrap;gap:8px}
+  .tagx{display:inline-flex;align-items:center;gap:8px;background:#eef1f4;border-radius:999px;padding:7px 8px 7px 14px;font-size:13.5px;font-weight:600}
+  .tagx button{width:20px;height:20px;border:0;border-radius:50%;background:#d3d8de;color:#333;font-size:13px;display:flex;align-items:center;justify-content:center}
+
+  .stabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .stab{background:#fff;border:1px solid var(--border);border-radius:11px;padding:11px 17px;font-weight:700;font-size:14px;color:var(--sub)}
+  .stab.active{background:var(--line);border-color:var(--line);color:#fff}
+  .llist{margin-top:16px;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .litem{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);font-size:15px;font-weight:600}
+  .litem:last-child{border-bottom:0}
+  .litem .del{border:0;background:transparent;color:#c0392b;font-weight:700;font-size:13px;padding:6px 8px}
+  .lempty{padding:26px 16px;color:var(--faint);text-align:center;font-size:14px}
+  .lockcard{max-width:380px;margin:44px auto;background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:32px 28px;text-align:center}
+  .lockcard .lockic{width:54px;height:54px;border-radius:15px;background:#eef1f4;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:var(--sub)}
+  .lockcard .lockic svg{width:26px;height:26px}
+  .lockcard .lockt{font-weight:800;font-size:17px;margin-bottom:18px}
+  .lockcard input{margin-bottom:12px;text-align:center}
+  .lockcard .btn{width:100%;justify-content:center}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(14px);z-index:80;background:#15171c;color:#fff;
+    padding:13px 20px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.24s;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:40;display:none}
+  @media(max-width:900px){
+    .sidebar{position:fixed;z-index:50;transform:translateX(-100%);transition:transform .25s ease}
+    body.menu .sidebar{transform:none} body.menu .scrim{display:block}
+    .mtop{display:flex}
+  }
+  .hide{display:none!important}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="logo">Roundsheets</div><div class="tag">Safripol · Granulation</div></div>
+    <nav class="navsec" id="navSheets"><div class="h">Sheets</div></nav>
+    <nav class="navsec" style="border-top:1px solid rgba(255,255,255,.06)">
+      <button class="navitem" id="navSettings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Lists</button>
+    </nav>
+    <div class="sidefoot"><span class="status"><span class="s"></span><span class="t mono"></span></span></div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <div class="main">
+    <div class="mtop">
+      <button class="burger" id="burger"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#15171c" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      <strong id="mtopTitle">Roundsheets</strong>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<input type="file" id="photoInput" accept="image/*" capture="environment" multiple class="hide">
+<input type="file" id="photoInputUp" accept="image/*" multiple class="hide">
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== config ===================== */
+/* ── SET ONCE BEFORE BUILDING THE APK ──────────────────────────────
+   Paste your Power Automate HTTP URL between the quotes. This is the only
+   place it lives. Technicians never see it. Leave blank to disable sync. */
+const FLOW_URL = "https://default005c07f2181240a982ec700570a99b.ff.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/30/workflows/14b25f17628a499f88a30e346fb4bd8a/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ONvc8w8Bj38bPWqRoThIsEUJ0bBaK7l9CUdRi4ilijs";
+/* Read flow that RETURNS grades + technicians from SharePoint as JSON.
+   Fill this in once you build it. Blank = dropdowns stay empty. */
+const CONFIG_URL = "";
+/* ────────────────────────────────────────────────────────────────── */
+
+const MIX_SECTIONS = [
+  { title:"Shift information", fields:[
+    { key:"Shift", label:"Shift", type:"choice", options:["Day","Night"] },
+    { key:"Date", label:"Date", type:"date" },
+    { key:"Time", label:"Time", type:"time" },
+    { key:"TECHNICIAN NAME", label:"Technician name", type:"select", source:"technicians" },
+  ]},
+  { title:"Line 0", fields:[
+    { key:"Grade? L0", label:"Grade", type:"select", source:"grades" },
+    { key:"Flexibles leaking?", label:"Flexibles leaking?", type:"yesno", note:"Leaking flexibles to be repaired or renewed" },
+    { key:"Powder leaks? L0", label:"Powder leaks?", type:"yesno", note:"Note where powder is leaking and repair, or load work request" },
+    { key:"Mixing area clean? L0", label:"Mixing area clean?", type:"yesno", note:"Area to be clean at all times" },
+    { key:"Any air leaks? L0", label:"Any air leaks?", type:"yesno", note:"Repair air leaks or load work request" },
+    { key:"Balance 1/2 leaks? L0", label:"Balance 1/2 leaks?", type:"yesno", note:"Any leaks to be repaired or load work request" },
+    { key:"Earth straps, In good condition? L0", label:"Earth straps in good condition?", type:"yesno", note:"Temporary fixes noted on MOM action items" },
+  ]},
+  { title:"Line 4", fields:[
+    { key:"Grade? L4", label:"Grade", type:"select", source:"grades" },
+    { key:"Flexibles leaking? L4", label:"Flexibles leaking?", type:"yesno", note:"Leaking flexibles to be repaired or renewed" },
+    { key:"Powder leaks? L4", label:"Powder leaks?", type:"yesno", note:"Note where powder is leaking and repair, or load work request" },
+    { key:"Mixing area clean? L4", label:"Mixing area clean?", type:"yesno", note:"Area to be clean at all times" },
+    { key:"Any air leaks? L4", label:"Any air leaks?", type:"yesno", note:"Repair air leaks or load work request" },
+    { key:"K-tron 1/2 inspection done? L4", label:"K-tron 1/2 inspection done?", type:"yesno", note:"Inspect K-tron belts, no powder underneath belts" },
+    { key:"K - tron 1/2 drained? L4", label:"K-tron 1/2 drained?", type:"yesno", note:"Large and small k-trons drained once per shift" },
+    { key:"Earth straps, In good condition? L4", label:"Earth straps in good condition?", type:"yesno", note:"Temporary fixes noted on MOM action items" },
+  ]},
+  { title:"Line 11", fields:[
+    { key:"Grade? L11", label:"Grade", type:"select", source:"grades" },
+    { key:"Flexibles leaking? L11", label:"Flexibles leaking?", type:"yesno", note:"Leaking flexibles to be repaired or renewed" },
+    { key:"Powder leaks? L11", label:"Powder leaks?", type:"yesno", note:"Note where powder is leaking and repair, or load work request" },
+    { key:"Mixing area clean? L11", label:"Mixing area clean?", type:"yesno", note:"Area to be clean at all times" },
+    { key:"Any air leaks? L11", label:"Any air leaks?", type:"yesno", note:"Repair air leaks or load work request" },
+    { key:"K-tron 1/2 inspection done? L11", label:"K-tron 1/2 inspection done?", type:"yesno", note:"Inspect K-tron belts, no powder underneath belts" },
+    { key:"K - tron 1/2 drained? L11", label:"K-tron 1/2 drained?", type:"yesno", note:"Large and small k-trons drained once per shift" },
+    { key:"Earth straps, In good condition? L11", label:"Earth straps in good condition?", type:"yesno", note:"Temporary fixes noted on MOM action items" },
+  ]},
+  { title:"Line 8", fields:[
+    { key:"Grade? L8", label:"Grade", type:"select", source:"grades" },
+    { key:"Flexibles leaking? L8", label:"Flexibles leaking?", type:"yesno", note:"Leaking flexibles to be repaired or renewed" },
+    { key:"Powder leaks? L8", label:"Powder leaks?", type:"yesno", note:"Note where powder is leaking and repair, or load work request" },
+    { key:"Mixing area clean? L8", label:"Mixing area clean?", type:"yesno", note:"Area to be clean at all times" },
+    { key:"Any air leaks? L8", label:"Any air leaks?", type:"yesno", note:"Repair air leaks or load work request" },
+    { key:"Stab feeder inspection done? L8", label:"Stab. feeder inspection done?", type:"yesno", note:"Inspect feeding of stabiliser feeder and agitator" },
+    { key:"Earth straps, In good condition? L8", label:"Earth straps in good condition?", type:"yesno", note:"Temporary fixes noted on MOM action items" },
+  ]},
+  { title:"Beringer jet cleaner", fields:[
+    { key:"19 m floor Beringer Jet cleaner pot clean?", label:"19 m floor Beringer Jet cleaner pot clean?", type:"yesno" },
+    { key:"Beringer jet cleaner, any defects?", label:"Beringer jet cleaner, any defects?", type:"yesno" },
+    { key:"Items burnt clean in Beringer jet unit?", label:"Items burnt clean in Beringer jet unit?", type:"yesno" },
+  ]},
+  { title:"General", fields:[
+    { key:"Comments", label:"Comments", type:"textarea", full:true, opt:true },
+    { key:"EH&S/QUALITY/GENERAL/ TEMPORARY FIXES", label:"EH&S / Quality / General / Temporary fixes", type:"textarea", full:true, opt:true },
+    { key:"TEMPORARY FIXES ENTERED ON MOM ACTION ITEMS", label:"Temporary fixes entered on MOM action items", type:"text", full:true, opt:true },
+    { key:"Checked By", label:"Checked by", type:"select", source:"technicians", opt:true },
+    { key:"__photos", label:"Photos", type:"photos", full:true },
+  ]},
+];
+const LINES = [
+  { id:"hdmix", name:"HD-GRAN (Mixing)", color:"#12b3a6", ready:true, gradeSource:"hdpeGrades", techSource:"hdpeTechnicians", sections:MIX_SECTIONS },
+  { id:"l04",   name:"HD-GRAN (Line 0 & 4)", color:"#6366f1", ready:false, gradeSource:"hdpeGrades", techSource:"hdpeTechnicians" },
+  { id:"l811",  name:"HD-GRAN (Line 8 & 11)", color:"#f59e0b", ready:false, gradeSource:"hdpeGrades", techSource:"hdpeTechnicians" },
+  { id:"ppgran",name:"PP-GRAN", color:"#f43f5e", ready:false, gradeSource:"ppGrades", techSource:"ppTechnicians" },
+];
+const TABLE_COLS=[["Date","Date"],["Shift","Shift"],["Time","Time"],["TECHNICIAN NAME","Technician"],["Comments","Comments"]];
+
+/* ===================== storage ===================== */
+const DB="roundsheets";
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open(DB,1);
+  r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains("rounds"))d.createObjectStore("rounds",{keyPath:"syncId"});
+    if(!d.objectStoreNames.contains("settings"))d.createObjectStore("settings",{keyPath:"k"});};
+  r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function dbAll(s){const d=await idb();return new Promise((r,j)=>{const t=d.transaction(s).objectStore(s).getAll();t.onsuccess=()=>r(t.result);t.onerror=()=>j(t.error);});}
+async function dbGet(s,k){const d=await idb();return new Promise((r,j)=>{const t=d.transaction(s).objectStore(s).get(k);t.onsuccess=()=>r(t.result);t.onerror=()=>j(t.error);});}
+async function dbPut(s,v){const d=await idb();return new Promise((r,j)=>{const t=d.transaction(s,"readwrite").objectStore(s).put(v);t.onsuccess=()=>r();t.onerror=()=>j(t.error);});}
+async function dbDel(s,k){const d=await idb();return new Promise((r,j)=>{const t=d.transaction(s,"readwrite").objectStore(s).delete(k);t.onsuccess=()=>r();t.onerror=()=>j(t.error);});}
+function uuid(){return crypto.randomUUID?crypto.randomUUID():'xxxxxxxxxxxx4xxx'.replace(/x/g,()=>(Math.random()*16|0).toString(16));}
+function esc(s){return String(s).replace(/["\\]/g,'\\$&');}
+function hesc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+let lists={hdpeGrades:[],ppGrades:[],hdpeTechnicians:[],ppTechnicians:[]};
+let current=LINES[0], nav="sheet", formPhotos=[], settingsTab="hdpeGrades", listsSyncedAt=null;
+
+/* ===================== sidebar ===================== */
+async function buildSidebar(){
+  const box=document.getElementById("navSheets"); box.innerHTML='<div class="h">Sheets</div>';
+  LINES.forEach(L=>{
+    const b=document.createElement("button"); b.className="navitem"; b.style.setProperty("--dot",L.color);
+    b.innerHTML='<span class="dot" style="background:'+L.color+'"></span>'+L.name;
+    b.onclick=()=>{current=L;nav="sheet";closeMenu();render();};
+    box.appendChild(b);
+  });
+  syncActiveNav();
+}
+function syncActiveNav(){
+  document.querySelectorAll(".navitem").forEach(n=>n.classList.remove("active"));
+  const items=document.querySelectorAll("#navSheets .navitem");
+  if(nav==="sheet"){const i=LINES.indexOf(current); if(items[i])items[i].classList.add("active");}
+  if(nav==="settings")document.getElementById("navSettings").classList.add("active");
+}
+document.getElementById("navSettings").onclick=()=>{nav="settings";closeMenu();render();};
+
+/* ===================== render router ===================== */
+function setLineColor(c){document.documentElement.style.setProperty("--line",c);}
+async function render(){
+  syncActiveNav();
+  document.getElementById("mtopTitle").textContent = nav==="settings"?"Lists":current.name;
+  if(nav==="settings"){setLineColor("#12b3a6");return renderSettings();}
+  setLineColor(current.color); return renderSheet();
+}
+
+/* ---- sheet table ---- */
+async function renderSheet(){
+  const all=(await dbAll("rounds")).filter(r=>r.listId===current.id).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  const c=document.getElementById("content");
+  const pend=all.filter(r=>!r.synced).length;
+  let head=
+    '<div class="phead"><div><div class="ttl"><span class="chip" style="background:'+current.color+'"></span>'+hesc(current.name)+'</div>'+
+    '<div class="sub">'+(current.ready?all.length+" round"+(all.length!==1?"s":"")+" · last 5 days":"Not set up yet")+'</div></div><div class="grow"></div>'+
+    statusPill()+
+    (current.ready&&pend?'<button class="btn ghost" id="syncAll">Upload all ('+pend+')</button>':'')+
+    (current.ready?'<button class="btn primary" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add round</button>':'')+
+    '</div>';
+  let body;
+  if(!current.ready){
+    body='<div class="tablecard"><div class="empty"><div class="b">This sheet isn\'t built yet</div>Send me its columns and it slots in here.</div></div>';
+  } else if(!all.length){
+    body='<div class="tablecard"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 4v16"/></svg><div class="b">No rounds yet</div>Tap “Add round” to record one.</div></div>';
+  } else {
+    let rows=all.map(r=>{
+      const s=r.synced?'<span class="sdot sy"><i></i>Uploaded</span>':(r.attempts?'<span class="sdot se"><i></i>Retry</span>':'<span class="sdot sp"><i></i>Pending</span>');
+      const act=r.synced?'<button class="rowsync done" disabled>Uploaded</button>':'<button class="rowsync" data-id="'+r.syncId+'">Upload</button>';
+      return '<tr>'+TABLE_COLS.map(([k])=>'<td>'+hesc(r.data[k]||"—")+'</td>').join('')+'<td>'+s+'</td><td style="text-align:right">'+act+'</td></tr>';
+    }).join('');
+    body='<div class="tablecard"><table><thead><tr>'+TABLE_COLS.map(([,l])=>'<th>'+l+'</th>').join('')+'<th>Status</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+  c.innerHTML=head+body;
+  const add=document.getElementById("addBtn"); if(add)add.onclick=openRecord;
+  const sa=document.getElementById("syncAll"); if(sa)sa.onclick=()=>syncAll(false);
+  c.querySelectorAll(".rowsync[data-id]").forEach(b=>b.onclick=()=>syncOne(b.dataset.id));
+}
+
+/* ---- lists (read-only; synced from SharePoint via the read flow, cached for offline) ---- */
+function renderSettings(){
+  const c=document.getElementById("content");
+  const DEFS=[["hdpeGrades","HDPE Grades"],["ppGrades","PP Grades"],["hdpeTechnicians","HDPE Technicians"],["ppTechnicians","PP Technicians"]];
+  if(!DEFS.find(d=>d[0]===settingsTab)) settingsTab=DEFS[0][0];
+  const def=DEFS.find(d=>d[0]===settingsTab), arr=lists[def[0]]||[];
+  const tabs=DEFS.map(([kk,label])=>'<button class="stab'+(kk===settingsTab?' active':'')+'" data-k="'+kk+'">'+label+'</button>').join('');
+  const rows=arr.length
+    ? arr.map(v=>'<div class="litem"><span>'+hesc(v)+'</span></div>').join('')
+    : '<div class="lempty">Nothing synced yet. These are managed in Power Apps and pulled in when the device is online.</div>';
+  const when=listsSyncedAt?("Updated "+new Date(listsSyncedAt).toLocaleString()):"Not synced yet";
+  c.innerHTML=
+    '<div class="phead"><div><div class="ttl">Lists</div><div class="sub">Managed in Power Apps · '+when+'</div></div><div class="grow"></div>'+
+      statusPill()+'<button class="btn ghost" id="refreshLists">Refresh</button></div>'+
+    '<div class="stabs">'+tabs+'</div>'+
+    '<div class="section"><h3>'+hesc(def[1])+' · '+arr.length+'</h3><div class="llist">'+rows+'</div></div>';
+  c.querySelectorAll(".stab").forEach(b=>b.onclick=()=>{settingsTab=b.dataset.k;renderSettings();});
+  document.getElementById("refreshLists").onclick=async()=>{
+    if(!navigator.onLine){toast("You're offline — using the last saved copy");return;}
+    toast("Refreshing…"); const ok=await fetchConfig(); renderSettings(); if(ok)toast("Lists updated");
+  };
+}
+
+/* ===================== record screen ===================== */
+function openRecord(){
+  formPhotos=[]; setLineColor(current.color);
+  const c=document.getElementById("content");
+  let html='<div class="rtop"><button class="iconbtn" id="rBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>'+
+    '<div class="ttl">New '+hesc(current.name)+' round</div></div>';
+  current.sections.forEach(sec=>{
+    html+='<div class="section"><h3>'+hesc(sec.title)+'</h3><div class="grid">'+sec.fields.map(fieldHTML).join('')+'</div></div>';
+  });
+  html+='<div class="recordbar">'+
+    '<button class="btn ghost" id="rCancel">Cancel</button>'+
+    '<button class="btn ghost" id="rSave">Save</button>'+
+    '<button class="save" id="rSaveUp">Save &amp; upload</button></div>';
+  c.innerHTML=html;
+  // clear the "missing" flag as soon as the user fills a field
+  c.addEventListener("input",e=>{const f=e.target.closest(".f");if(f)f.classList.remove("miss");});
+  c.addEventListener("click",e=>{const seg=e.target.closest(".seg");if(seg){const f=seg.closest(".f");if(f)f.classList.remove("miss");}});
+  // wire controls
+  current.sections.forEach(sec=>sec.fields.forEach(f=>{
+    if(f.type==="yesno"||f.type==="choice"){
+      const seg=c.querySelector('.seg[data-key="'+esc(f.key)+'"]');
+      seg.querySelectorAll("button").forEach(b=>b.onclick=()=>{seg.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");});
+    }
+  }));
+  const box=c.querySelector("#photoBox"); if(box)renderPhotoBox(box);
+  applyDefaults();
+  document.getElementById("rBack").onclick=()=>{nav="sheet";render();};
+  document.getElementById("rCancel").onclick=()=>{nav="sheet";render();};
+  document.getElementById("rSave").onclick=()=>saveRound(false);
+  document.getElementById("rSaveUp").onclick=()=>saveRound(true);
+  window.scrollTo(0,0);
+}
+function fieldHTML(f){
+  if(f.type==="photos") return '<div class="f full"><label>'+f.label+'</label><div class="photos" id="photoBox"></div></div>';
+  let ctrl="";
+  if(f.type==="yesno"||f.type==="choice"){
+    const opts=f.type==="yesno"?["Yes","No","N/A"]:f.options;
+    ctrl='<div class="seg" data-key="'+hesc(f.key)+'">'+opts.map(o=>'<button type="button" data-val="'+hesc(o)+'" aria-pressed="false">'+hesc(o)+'</button>').join('')+'</div>';
+  } else if(f.type==="select"){
+    const srcKey=f.source==="grades"?current.gradeSource:(f.source==="technicians"?current.techSource:f.source);
+    const arr=lists[srcKey]||[];
+    const opts = arr.length
+      ? '<option value="">—</option>'+arr.map(v=>'<option>'+hesc(v)+'</option>').join('')
+      : '<option value="">No options yet — add them in Settings</option>';
+    ctrl='<select data-key="'+hesc(f.key)+'"'+(arr.length?'':' disabled')+'>'+opts+'</select>';
+  } else if(f.type==="textarea"){ ctrl='<textarea data-key="'+hesc(f.key)+'"></textarea>'; }
+  else { ctrl='<input type="'+(f.type==="date"?"date":f.type==="time"?"time":"text")+'" data-key="'+hesc(f.key)+'">'; }
+  return '<div class="f'+(f.full?' full':'')+'"><label>'+hesc(f.label)+'</label>'+ctrl+(f.note?'<div class="note">Note: '+hesc(f.note)+'</div>':'')+'</div>';
+}
+function applyDefaults(){
+  const c=document.getElementById("content");
+  const d=c.querySelector('input[type=date]'); if(d&&!d.value)d.value=new Date().toISOString().slice(0,10);
+  const t=c.querySelector('input[type=time]'); if(t&&!t.value)t.value=new Date().toTimeString().slice(0,5);
+}
+/* photos */
+function renderPhotoBox(box){
+  box.innerHTML='';
+  const cam=document.createElement("button");cam.type="button";cam.className="addph";
+  cam.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Take photo</span>';
+  cam.onclick=()=>document.getElementById("photoInput").click();
+  const up=document.createElement("button");up.type="button";up.className="addph";
+  up.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg><span>Upload</span>';
+  up.onclick=()=>document.getElementById("photoInputUp").click();
+  box.appendChild(cam); box.appendChild(up);
+  formPhotos.forEach(p=>{const t=document.createElement("div");t.className="thumb";
+    t.innerHTML='<img src="'+p.url+'"><button class="x">&times;</button>';
+    t.querySelector(".x").onclick=()=>{URL.revokeObjectURL(p.url);formPhotos=formPhotos.filter(x=>x.id!==p.id);renderPhotoBox(box);};box.appendChild(t);});
+}
+async function addPhotoFiles(files){
+  for(const file of files){try{const blob=await compress(file);formPhotos.push({id:uuid(),blob,url:URL.createObjectURL(blob)});}catch(_){toast("Couldn't add a photo");}}
+  const box=document.querySelector("#photoBox");if(box)renderPhotoBox(box);
+}
+document.getElementById("photoInput").onchange=e=>{addPhotoFiles(e.target.files);e.target.value="";};
+document.getElementById("photoInputUp").onchange=e=>{addPhotoFiles(e.target.files);e.target.value="";};
+async function compress(file){const bmp=await createImageBitmap(file);const max=1400,s=Math.min(1,max/Math.max(bmp.width,bmp.height));
+  const w=Math.round(bmp.width*s),h=Math.round(bmp.height*s);const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+  cv.getContext("2d").drawImage(bmp,0,0,w,h);return await new Promise(r=>cv.toBlob(r,"image/jpeg",.72));}
+function b64(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(blob);});}
+
+async function saveRound(upload){
+  const c=document.getElementById("content"), data={};
+  // validate: every field required except those flagged opt (and photos)
+  let firstMissing=null, missCount=0;
+  current.sections.forEach(sec=>sec.fields.forEach(f=>{
+    if(f.type==="photos"||f.opt)return;
+    let val="", wrap=null;
+    if(f.type==="yesno"||f.type==="choice"){const seg=c.querySelector('.seg[data-key="'+esc(f.key)+'"]');const on=seg&&seg.querySelector('[aria-pressed="true"]');val=on?on.dataset.val:"";wrap=seg&&seg.closest(".f");}
+    else{const el=c.querySelector('[data-key="'+esc(f.key)+'"]');val=el?el.value:"";wrap=el&&el.closest(".f");}
+    if(!val && wrap){wrap.classList.add("miss");missCount++;if(!firstMissing)firstMissing=wrap;}
+  }));
+  if(missCount){
+    if(firstMissing)firstMissing.scrollIntoView({behavior:"smooth",block:"center"});
+    toast("Fill in all fields — "+missCount+" still empty");
+    return;
+  }
+  current.sections.forEach(sec=>sec.fields.forEach(f=>{
+    if(f.type==="photos")return;
+    if(f.type==="yesno"||f.type==="choice"){const seg=c.querySelector('.seg[data-key="'+esc(f.key)+'"]');const on=seg&&seg.querySelector('[aria-pressed="true"]');data[f.key]=on?on.dataset.val:"";}
+    else{const el=c.querySelector('[data-key="'+esc(f.key)+'"]');data[f.key]=el?el.value:"";}
+  }));
+  const rec={syncId:uuid(),listId:current.id,createdAt:new Date().toISOString(),synced:false,attempts:0,data,
+    photos:formPhotos.map(p=>({name:"photo-"+p.id.slice(0,8)+".jpg",blob:p.blob}))};
+  await dbPut("rounds",rec);
+  formPhotos.forEach(p=>URL.revokeObjectURL(p.url));formPhotos=[];
+  toast(upload?"Saved — uploading…":"Saved to this device");
+  await buildSidebar(); nav="sheet"; render();
+  if(upload && navigator.onLine) syncAll(true);
+}
+
+/* ===================== sync ===================== */
+function statusPill(){return '<span class="pill2 '+(navigator.onLine?"on":"off")+'"><span class="d"></span>'+(navigator.onLine?"Online":"Offline")+'</span>';}
+async function pushRecord(rec){
+  const photos=[];for(const ph of(rec.photos||[]))photos.push({name:ph.name,contentBytes:await b64(ph.blob)});
+  const payload=Object.assign({photos},rec.data);
+  const res=await fetch(FLOW_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify(payload)});
+  if(res.ok){rec.synced=true;rec.syncedAt=new Date().toISOString();await dbPut("rounds",rec);return true;}
+  rec.attempts++;rec.lastError="HTTP "+res.status;await dbPut("rounds",rec);return false;
+}
+async function afterSync(){await prune();await buildSidebar();if(nav!=="settings")render();}
+async function syncOne(id){
+  if(!FLOW_URL){toast("Upload isn't set up yet");return;}
+  if(!navigator.onLine){toast("You're offline — it'll upload automatically later");return;}
+  const rec=await dbGet("rounds",id); if(!rec||rec.synced)return;
+  try{const ok=await pushRecord(rec);toast(ok?"Round uploaded":"Upload failed — kept on device");}
+  catch(e){rec.attempts++;rec.lastError=String(e.message||e);await dbPut("rounds",rec);toast("Upload failed — kept on device");}
+  await afterSync();
+}
+async function syncAll(silent){
+  if(!FLOW_URL){if(!silent)toast("Upload isn't set up yet");return;}
+  if(!navigator.onLine){if(!silent)toast("You're offline — will upload later");return;}
+  const pend=(await dbAll("rounds")).filter(r=>!r.synced);
+  if(!pend.length){if(!silent)toast("Nothing to upload");return;}
+  let ok=0,fail=0;
+  for(const rec of pend){try{(await pushRecord(rec))?ok++:fail++;}catch(e){rec.attempts++;rec.lastError=String(e.message||e);await dbPut("rounds",rec);fail++;}}
+  await afterSync();
+  if(ok&&!fail)toast(ok+" round"+(ok>1?"s":"")+" uploaded");
+  else if(ok)toast(ok+" uploaded, "+fail+" still on device");
+  else if(!silent)toast("Upload failed — rounds kept safe on device");
+}
+async function prune(){ // delete synced rounds older than 5 days; never delete unsynced
+  const cutoff=Date.now()-5*24*60*60*1000;
+  const all=await dbAll("rounds");
+  for(const r of all){ if(r.synced && new Date(r.createdAt).getTime()<cutoff) await dbDel("rounds",r.syncId); }
+}
+
+/* ===================== misc ===================== */
+async function fetchConfig(){ // app calls OUT to the read flow; safe to fail; caches for offline
+  if(!CONFIG_URL || !navigator.onLine) return false;
+  try{
+    const res=await fetch(CONFIG_URL,{method:"GET"});
+    if(!res.ok) return false;
+    const d=await res.json();
+    lists={ hdpeGrades:d.hdpeGrades||[], ppGrades:d.ppGrades||[], hdpeTechnicians:d.hdpeTechnicians||[], ppTechnicians:d.ppTechnicians||[] };
+    listsSyncedAt=new Date().toISOString();
+    await dbPut("settings",{k:"lists",v:lists,at:listsSyncedAt});
+    return true;
+  }catch(_){ return false; }
+}
+function updateOnline(){document.body.classList.toggle("offline",!navigator.onLine);}
+window.addEventListener("online",()=>{updateOnline();render();syncAll(true);fetchConfig().then(ok=>{if(ok&&nav==="settings")renderSettings();});});
+window.addEventListener("offline",()=>{updateOnline();render();});
+let tT;function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(tT);tT=setTimeout(()=>t.classList.remove("show"),2500);}
+function closeMenu(){document.body.classList.remove("menu");}
+document.getElementById("burger").onclick=()=>document.body.classList.toggle("menu");
+document.getElementById("scrim").onclick=closeMenu;
+
+(async()=>{
+  const l=await dbGet("settings","lists"); if(l&&l.v){lists=Object.assign(lists,l.v); listsSyncedAt=l.at||null;}
+  await prune(); await buildSidebar(); updateOnline(); render();
+  if("serviceWorker" in navigator){try{await navigator.serviceWorker.register("sw.js");}catch(_){}}
+  if(navigator.onLine){ syncAll(true); fetchConfig().then(ok=>{ if(ok) render(); }); }
+  setInterval(()=>{ if(navigator.onLine){ syncAll(true); fetchConfig(); } }, 60000); // opportunistic, only when online
+})();
+</script>
+</body>
+</html>
