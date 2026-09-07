@@ -193,7 +193,7 @@
 const FLOW_URL = "https://default005c07f2181240a982ec700570a99b.ff.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/30/workflows/14b25f17628a499f88a30e346fb4bd8a/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ONvc8w8Bj38bPWqRoThIsEUJ0bBaK7l9CUdRi4ilijs";
 /* Read flow that RETURNS grades + technicians from SharePoint as JSON.
    Fill this in once you build it. Blank = dropdowns stay empty. */
-const CONFIG_URL = "https://default005c07f2181240a982ec700570a99b.ff.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/15/workflows/13c2fd0367904814aef5e925e1c25703/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=PhN-gJUrHuw_gHJE3dkEcCVXT7pr1mFE6QwLfJAKvMY";
+const CONFIG_URL = "https://default005c07f2181240a982ec700570a99b.ff.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/26/workflows/37786ebdd23d40efad4e9e78070ff9da/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=F2toa0BdrJYf2g59GQOO7J5v3zxbK-3Md27mGrzVFno";
 /* ────────────────────────────────────────────────────────────────── */
 
 const MIX_SECTIONS = [
@@ -347,7 +347,7 @@ function renderSettings(){
   const tabs=DEFS.map(([kk,label])=>'<button class="stab'+(kk===settingsTab?' active':'')+'" data-k="'+kk+'">'+label+'</button>').join('');
   const rows=arr.length
     ? arr.map(v=>'<div class="litem"><span>'+hesc(v)+'</span></div>').join('')
-    : '<div class="lempty">Nothing synced yet. These are managed in Power Apps and pulled in when the device is online.</div>';
+    : '<div class="lempty">—</div>';
   const when=listsSyncedAt?("Updated "+new Date(listsSyncedAt).toLocaleString()):"Not synced yet";
   c.innerHTML=
     '<div class="phead"><div><div class="ttl">Lists</div><div class="sub">Managed in Power Apps · '+when+'</div></div><div class="grow"></div>'+
