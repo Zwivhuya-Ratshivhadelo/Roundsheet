@@ -314,16 +314,16 @@ async function renderSheet(){
   const pend=all.filter(r=>!r.synced).length;
   let head=
     '<div class="phead"><div><div class="ttl"><span class="chip" style="background:'+current.color+'"></span>'+hesc(current.name)+'</div>'+
-    '<div class="sub">'+(current.ready?all.length+" round"+(all.length!==1?"s":""):"Not set up yet")+'</div></div><div class="grow"></div>'+
+    '<div class="sub">'+(current.ready?all.length+" roundsheet"+(all.length!==1?"s":""):"Not set up yet")+'</div></div><div class="grow"></div>'+
     statusPill()+
     (current.ready&&pend?'<button class="btn ghost" id="syncAll">Upload all ('+pend+')</button>':'')+
-    (current.ready?'<button class="btn primary" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add round</button>':'')+
+    (current.ready?'<button class="btn primary" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add roundsheet</button>':'')+
     '</div>';
   let body;
   if(!current.ready){
     body='<div class="tablecard"><div class="empty"><div class="b">This sheet isn\'t built yet</div>Send me its columns and it slots in here.</div></div>';
   } else if(!all.length){
-    body='<div class="tablecard"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 4v16"/></svg><div class="b">No rounds yet</div>Tap “Add round” to record one.</div></div>';
+    body='<div class="tablecard"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 4v16"/></svg><div class="b">No roundsheets yet</div>Tap “Add roundsheet” to record one.</div></div>';
   } else {
     let rows=all.map(r=>{
       const s=r.synced?'<span class="sdot sy"><i></i>Uploaded</span>':(r.attempts?'<span class="sdot se"><i></i>Retry</span>':'<span class="sdot sp"><i></i>Pending</span>');
@@ -334,8 +334,8 @@ async function renderSheet(){
   }
   c.innerHTML=head+body;
   const add=document.getElementById("addBtn"); if(add)add.onclick=openRecord;
-  const sa=document.getElementById("syncAll"); if(sa)sa.onclick=()=>syncAll(false);
-  c.querySelectorAll(".rowsync[data-id]").forEach(b=>b.onclick=()=>syncOne(b.dataset.id));
+  const sa=document.getElementById("syncAll"); if(sa)sa.onclick=()=>{ if(confirm("Upload all waiting roundsheets?")) syncAll(false); };
+  c.querySelectorAll(".rowsync[data-id]").forEach(b=>b.onclick=()=>{ if(confirm("Upload this roundsheet?")) syncOne(b.dataset.id); });
 }
 
 /* ---- lists (read-only; synced from SharePoint via the read flow, cached for offline) ---- */
@@ -366,7 +366,7 @@ function openRecord(){
   formPhotos=[]; setLineColor(current.color);
   const c=document.getElementById("content");
   let html='<div class="rtop"><button class="iconbtn" id="rBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>'+
-    '<div class="ttl">New '+hesc(current.name)+' round</div></div>';
+    '<div class="ttl">New '+hesc(current.name)+' roundsheet</div></div>';
   current.sections.forEach(sec=>{
     html+='<div class="section"><h3>'+hesc(sec.title)+'</h3><div class="grid">'+sec.fields.map(fieldHTML).join('')+'</div></div>';
   });
@@ -390,7 +390,7 @@ function openRecord(){
   document.getElementById("rBack").onclick=()=>{nav="sheet";render();};
   document.getElementById("rCancel").onclick=()=>{nav="sheet";render();};
   document.getElementById("rSave").onclick=()=>saveRound(false);
-  document.getElementById("rSaveUp").onclick=()=>saveRound(true);
+  document.getElementById("rSaveUp").onclick=()=>{ if(confirm("Upload this roundsheet now?")) saveRound(true); };
   window.scrollTo(0,0);
 }
 function fieldHTML(f){
@@ -467,7 +467,7 @@ async function saveRound(upload){
   formPhotos.forEach(p=>URL.revokeObjectURL(p.url));formPhotos=[];
   toast(upload?"Saved — uploading…":"Saved to this device");
   await buildSidebar(); nav="sheet"; render();
-  if(upload && navigator.onLine) syncAll(true);
+  if(upload) syncAll(false);
 }
 
 /* ===================== sync ===================== */
@@ -484,7 +484,7 @@ async function syncOne(id){
   if(!FLOW_URL){toast("Upload isn't set up yet");return;}
   if(!navigator.onLine){toast("You're offline — it'll upload automatically later");return;}
   const rec=await dbGet("rounds",id); if(!rec||rec.synced)return;
-  try{const ok=await pushRecord(rec);toast(ok?"Round uploaded":"Upload failed — kept on device");}
+  try{const ok=await pushRecord(rec);toast(ok?"Roundsheet uploaded":"Upload failed — kept on device");}
   catch(e){rec.attempts++;rec.lastError=String(e.message||e);await dbPut("rounds",rec);toast("Upload failed — kept on device");}
   await afterSync();
 }
@@ -496,9 +496,9 @@ async function syncAll(silent){
   let ok=0,fail=0;
   for(const rec of pend){try{(await pushRecord(rec))?ok++:fail++;}catch(e){rec.attempts++;rec.lastError=String(e.message||e);await dbPut("rounds",rec);fail++;}}
   await afterSync();
-  if(ok&&!fail)toast(ok+" round"+(ok>1?"s":"")+" uploaded");
+  if(ok&&!fail)toast(ok+" roundsheet"+(ok>1?"s":"")+" uploaded");
   else if(ok)toast(ok+" uploaded, "+fail+" still on device");
-  else if(!silent)toast("Upload failed — rounds kept safe on device");
+  else if(!silent)toast("Upload failed — roundsheets kept safe on device");
 }
 async function prune(){ // delete synced rounds older than 5 days; never delete unsynced
   const cutoff=Date.now()-5*24*60*60*1000;
@@ -531,7 +531,7 @@ async function fetchConfig(){ // app calls OUT to the read flow; caches for offl
   }catch(e){ toast("Lists error: "+(e&&e.message?e.message:e)); return false; }
 }
 function updateOnline(){document.body.classList.toggle("offline",!navigator.onLine);}
-window.addEventListener("online",()=>{updateOnline();render();syncAll(true);fetchConfig().then(ok=>{if(ok&&nav==="settings")renderSettings();});});
+window.addEventListener("online",()=>{updateOnline();render();});
 window.addEventListener("offline",()=>{updateOnline();render();});
 let tT;function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(tT);tT=setTimeout(()=>t.classList.remove("show"),2500);}
 function closeMenu(){document.body.classList.remove("menu");}
@@ -542,8 +542,8 @@ document.getElementById("scrim").onclick=closeMenu;
   const l=await dbGet("settings","lists"); if(l&&l.v){lists=Object.assign(lists,l.v); listsSyncedAt=l.at||null;}
   await prune(); await buildSidebar(); updateOnline(); render();
   if("serviceWorker" in navigator){try{await navigator.serviceWorker.register("sw.js");}catch(_){}}
-  if(navigator.onLine){ syncAll(true); fetchConfig().then(ok=>{ if(ok) render(); }); }
-  // no timers: uploads happen on save, on reconnect (online event) and via manual Sync; lists refresh on open + Refresh
+  if(navigator.onLine){ fetchConfig().then(ok=>{ if(ok) render(); }); }
+  // uploads are button-only (Save & upload, per-row Upload, Upload all). No automatic uploads, no timers.
 })();
 </script>
 </body>
