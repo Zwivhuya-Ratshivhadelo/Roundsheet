@@ -507,17 +507,18 @@ async function prune(){ // delete synced rounds older than 5 days; never delete 
 }
 
 /* ===================== misc ===================== */
-async function fetchConfig(){ // app calls OUT to the read flow; safe to fail; caches for offline
-  if(!CONFIG_URL || !navigator.onLine) return false;
+async function fetchConfig(){ // app calls OUT to the read flow; caches for offline
+  if(!CONFIG_URL){ toast("No read-flow URL set"); return false; }
+  if(!navigator.onLine){ return false; }
   try{
     const res=await fetch(CONFIG_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:"{}"});
-    if(!res.ok) return false;
+    if(!res.ok){ toast("Lists: flow returned HTTP "+res.status); return false; }
     const d=await res.json();
     lists={ hdpeGrades:d.hdpeGrades||[], ppGrades:d.ppGrades||[], hdpeTechnicians:d.hdpeTechnicians||[], ppTechnicians:d.ppTechnicians||[] };
     listsSyncedAt=new Date().toISOString();
     await dbPut("settings",{k:"lists",v:lists,at:listsSyncedAt});
     return true;
-  }catch(_){ return false; }
+  }catch(e){ toast("Lists error: "+(e&&e.message?e.message:e)); return false; }
 }
 function updateOnline(){document.body.classList.toggle("offline",!navigator.onLine);}
 window.addEventListener("online",()=>{updateOnline();render();syncAll(true);fetchConfig().then(ok=>{if(ok&&nav==="settings")renderSettings();});});
