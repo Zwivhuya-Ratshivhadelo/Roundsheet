@@ -314,7 +314,7 @@ async function renderSheet(){
   const pend=all.filter(r=>!r.synced).length;
   let head=
     '<div class="phead"><div><div class="ttl"><span class="chip" style="background:'+current.color+'"></span>'+hesc(current.name)+'</div>'+
-    '<div class="sub">'+(current.ready?all.length+" round"+(all.length!==1?"s":"")+" · last 5 days":"Not set up yet")+'</div></div><div class="grow"></div>'+
+    '<div class="sub">'+(current.ready?all.length+" round"+(all.length!==1?"s":""):"Not set up yet")+'</div></div><div class="grow"></div>'+
     statusPill()+
     (current.ready&&pend?'<button class="btn ghost" id="syncAll">Upload all ('+pend+')</button>':'')+
     (current.ready?'<button class="btn primary" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add round</button>':'')+
@@ -404,7 +404,7 @@ function fieldHTML(f){
     const arr=lists[srcKey]||[];
     const opts = arr.length
       ? '<option value="">—</option>'+arr.map(v=>'<option>'+hesc(v)+'</option>').join('')
-      : '<option value="">No options yet — add them in Settings</option>';
+      : '<option value="">—</option>';
     ctrl='<select data-key="'+hesc(f.key)+'"'+(arr.length?'':' disabled')+'>'+opts+'</select>';
   } else if(f.type==="textarea"){ ctrl='<textarea data-key="'+hesc(f.key)+'"></textarea>'; }
   else { ctrl='<input type="'+(f.type==="date"?"date":f.type==="time"?"time":"text")+'" data-key="'+hesc(f.key)+'">'; }
@@ -510,7 +510,7 @@ async function prune(){ // delete synced rounds older than 5 days; never delete 
 async function fetchConfig(){ // app calls OUT to the read flow; safe to fail; caches for offline
   if(!CONFIG_URL || !navigator.onLine) return false;
   try{
-    const res=await fetch(CONFIG_URL,{method:"GET"});
+    const res=await fetch(CONFIG_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:"{}"});
     if(!res.ok) return false;
     const d=await res.json();
     lists={ hdpeGrades:d.hdpeGrades||[], ppGrades:d.ppGrades||[], hdpeTechnicians:d.hdpeTechnicians||[], ppTechnicians:d.ppTechnicians||[] };
